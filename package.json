@@ -16,6 +16,7 @@
     "status": "tsx scripts/status.ts",
     "chat": "tsx chat-cli/index.ts",
     "chat:web": "tsx scripts/chat-web-config.ts",
+    "kb-sync": "tsx scripts/kb-sync.ts",
     "specimens": "tsx test-data/generate-specimens.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test \"test/**/*.test.ts\""

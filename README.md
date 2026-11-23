@@ -10,10 +10,10 @@ The passport office and the NIC office share one building, and visitors lose pas
 ![Architecture](docs/architecture.png)
 
 <!-- stage -->
-> **You are on `stage-5-guardrails`: stage 5, Protect personal data.** Bedrock Guardrails in the chat proxy: prompt attacks are blocked on the way in; ID numbers and contact details are masked on the way out.
+> **You are on `stage-6-knowledge-base`: stage 6, Answer questions about procedures (optional).** A Knowledge Base on S3 Vectors holds the offices' procedure PDFs, and the agent gets a second tool, office_procedures.
 >
 > Deploy this stage: `npx cdk deploy --all --require-approval never`
-> Next stage: `git checkout stage-6-knowledge-base` (optional)
+> This is the last stage. Clean up with `npx cdk destroy --all --force`.
 <!-- /stage -->
 
 ## Workshop stages

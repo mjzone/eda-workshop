@@ -13,7 +13,7 @@ let template: Template;
 before(() => {
   const app = new App({ context: { 'aws:cdk:bundling-stacks': [] } });
   const env = { account: '111111111111', region: 'us-east-1' };
-  const config = loadConfig({});
+  const config = loadConfig({ ENABLE_KNOWLEDGE_BASE: 'true' });
   const found = new FoundDocumentsStack(app, 'FoundDocumentsStack', { env, config });
   template = Template.fromStack(new FindMyDocumentStack(app, 'FindMyDocumentStack', { env, config, table: found.table }));
 });
@@ -44,6 +44,14 @@ describe('FindMyDocumentStack', () => {
     }
   });
 
+  it('stores the procedure Knowledge Base in S3 Vectors and adds office_procedures', () => {
+    template.hasResourceProperties('AWS::Bedrock::KnowledgeBase', { StorageConfiguration: { Type: 'S3_VECTORS' } });
+    template.hasResourceProperties('AWS::BedrockAgentCore::GatewayTarget', {
+      Name: 'procedures',
+      TargetConfiguration: { Mcp: { Lambda: { ToolSchema: { InlinePayload: [Match.objectLike({ Name: 'office_procedures' })] } } } },
+    });
+  });
+
   it('keeps every log group for 3 days', () => {
     const groups = Object.values(template.findResources('AWS::Logs::LogGroup'));
     assert.ok(groups.length > 0);
@@ -54,7 +62,7 @@ describe('FindMyDocumentStack', () => {
     for (const policy of Object.values(template.findResources('AWS::IAM::Policy'))) {
       for (const statement of policy.Properties.PolicyDocument.Statement) {
         const actions = [statement.Action].flat() as string[];
-        if (actions.some((a) => /^(bedrock|bedrock-agentcore|dynamodb):/.test(a))) {
+        if (actions.some((a) => /^(bedrock|bedrock-agentcore|dynamodb|s3vectors):/.test(a))) {
           assert.ok(![statement.Resource].flat().includes('*'), JSON.stringify(statement));
         }
       }

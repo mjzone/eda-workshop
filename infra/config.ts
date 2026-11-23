@@ -22,7 +22,7 @@ const Schema = z
     GUARDRAIL_TIER: z.enum(['CLASSIC', 'STANDARD']).default('CLASSIC'),
     GUARDRAIL_PROFILE_ID: z.string().default('us.guardrail.v1:0'),
     COLLECTION_POINT: z.string().min(1).default('Security desk, ground floor'),
-    ENABLE_KNOWLEDGE_BASE: bool.default(false),
+    ENABLE_KNOWLEDGE_BASE: bool.default(true),
     REVIEW_TIMEOUT_HOURS: positiveInt.default(24),
     RECORD_TTL_DAYS: positiveInt.default(30),
     IMAGE_RETENTION_DAYS: positiveInt.default(30),
