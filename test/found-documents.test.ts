@@ -67,8 +67,12 @@ describe('FoundDocumentsStack', () => {
     }
   });
 
-  it('stops at ChecksFailed when a check fails', () => {
-    assert.equal(stateMachine().States['ChecksPassed?'].Default, 'ChecksFailed');
+  it('waits for an officer with a task token when a check fails', () => {
+    const states = stateMachine().States;
+    assert.equal(states['ChecksPassed?'].Default, 'RequestOfficerReview');
+    assert.ok(states.RequestOfficerReview.Resource.endsWith('lambda:invoke.waitForTaskToken'));
+    assert.equal(states.RequestOfficerReview.Catch[0].Next, 'ReviewTimedOut');
+    assert.equal(states['ReviewOutcome?'].Choices[0].Next, 'ValidateFields');
   });
 
   it('names the table found-documents with a by_dob index and a TTL', () => {

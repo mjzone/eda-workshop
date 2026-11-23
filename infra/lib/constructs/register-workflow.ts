@@ -1,11 +1,12 @@
-// The register-found-document workflow, stage 2, written in JSONata.
+// The register-found-document workflow (steps 2 to 5), written in JSONata.
 //
 //   KeyValid? -> ClaimItem -> ExtractFields -> ValidateFields -> ChecksPassed? -> SaveRecord -> Done
-//                    |                                               |
-//                    v                                               v
-//            AlreadyProcessing                                  ChecksFailed
-//
-// Stage 3 replaces ChecksFailed with a review by a security officer.
+//                    |                              ^                  |
+//                    v                              |                  v
+//            AlreadyProcessing                ReviewOutcome? <- RequestOfficerReview (waits for the desk)
+//                                                   |
+//                                                   v
+//                                               Rejected
 
 import { Duration } from 'aws-cdk-lib';
 import type { ITable } from 'aws-cdk-lib/aws-dynamodb';
@@ -78,6 +79,13 @@ export class RegisterWorkflow extends Construct {
       },
     });
 
+    const reviewFn = nodeFunction(this, 'RequestReviewFunction', {
+      folder: 'request-review',
+      description: 'Writes a review request for the security desk',
+      environment: { FOUND_ITEMS_BUCKET: bucket.bucketName },
+    });
+    bucket.grantPut(reviewFn, 'reviews/*');
+
     // ---- States ------------------------------------------------------------------------
     const done = sfn.Succeed.jsonata(this, 'Done');
     const alreadyProcessing = sfn.Succeed.jsonata(this, 'AlreadyProcessing', {
@@ -87,9 +95,10 @@ export class RegisterWorkflow extends Construct {
       error: 'InvalidKey',
       cause: 'The object key is not found/{ULID}/manifest.json',
     });
-    const checksFailed = sfn.Fail.jsonata(this, 'ChecksFailed', {
-      error: 'ChecksFailed',
-      cause: 'A check failed. In stage 3, an officer reviews the item instead.',
+    const rejected = sfn.Fail.jsonata(this, 'Rejected', { error: 'Rejected', cause: 'The officer rejected the item' });
+    const reviewTimedOut = sfn.Fail.jsonata(this, 'ReviewTimedOut', {
+      error: 'ReviewTimedOut',
+      cause: `No decision arrived within ${config.REVIEW_TIMEOUT_HOURS} hours`,
     });
 
     // Claim the item before any model call, so a duplicate event stops here (ING-8).
@@ -133,11 +142,32 @@ export class RegisterWorkflow extends Construct {
         manifest_document_type: '{% $extraction.manifest_document_type %}',
         extraction: '{% $extraction.extraction %}',
         extraction_error: '{% $extraction.extraction_error %}',
+        officer: '{% $officer %}',
       }),
       outputs: '{% $states.result.Payload %}',
       retryOnServiceExceptions: false,
     });
     validateFields.addRetry(LAMBDA_RETRY);
+
+    // The workflow pauses here until the desk CLI sends the task token back (callback pattern).
+    const requestReview = tasks.LambdaInvoke.jsonata(this, 'RequestOfficerReview', {
+      lambdaFunction: reviewFn,
+      integrationPattern: sfn.IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+      payload: sfn.TaskInput.fromObject({
+        task_token: '{% $states.context.Task.Token %}',
+        execution_arn: '{% $states.context.Execution.Id %}',
+        item_id: '{% $itemId %}',
+        manifest_document_type: '{% $extraction.manifest_document_type %}',
+        page_keys: '{% $extraction.page_keys %}',
+        fields: '{% $states.input.fields %}',
+        failed_checks: '{% $states.input.failed_checks %}',
+      }),
+      taskTimeout: sfn.Timeout.duration(Duration.hours(config.REVIEW_TIMEOUT_HOURS)),
+      outputs: '{% $states.result %}',
+      retryOnServiceExceptions: false,
+    });
+    requestReview.addRetry(LAMBDA_RETRY);
+    requestReview.addCatch(reviewTimedOut, { errors: ['States.Timeout'] });
 
     // Only the execution that claimed the item may write the record.
     const saveRecord = new sfn.CustomState(this, 'SaveRecord', {
@@ -163,9 +193,15 @@ export class RegisterWorkflow extends Construct {
     saveRecord.addRetry(DYNAMODB_RETRY);
     saveRecord.addCatch(done, { errors: ['DynamoDB.ConditionalCheckFailedException'] });
 
+    const reviewOutcome = sfn.Choice.jsonata(this, 'ReviewOutcome?')
+      .when(sfn.Condition.jsonata('{% $states.input.decision = "APPROVE" %}'), validateFields, {
+        assign: { officer: '{% $states.input %}' },
+      })
+      .otherwise(rejected);
+
     const checksPassed = sfn.Choice.jsonata(this, 'ChecksPassed?')
       .when(sfn.Condition.jsonata('{% $states.input.valid %}'), saveRecord.next(done))
-      .otherwise(checksFailed);
+      .otherwise(requestReview.next(reviewOutcome));
 
     const keyValid = sfn.Choice.jsonata(this, 'KeyValid?')
       .when(
@@ -176,6 +212,7 @@ export class RegisterWorkflow extends Construct {
             bucket: '{% $states.input.bucket %}',
             manifestKey: '{% $states.input.key %}',
             itemId: '{% $split($states.input.key, "/")[1] %}',
+            officer: null,
           },
         },
       )
@@ -186,7 +223,7 @@ export class RegisterWorkflow extends Construct {
       stateMachineType: sfn.StateMachineType.STANDARD,
       queryLanguage: sfn.QueryLanguage.JSONATA,
       definitionBody: sfn.DefinitionBody.fromChainable(keyValid),
-      comment: 'Registers a found passport or NIC: extract, check, save',
+      comment: 'Registers a found passport or NIC: extract, check, ask an officer if needed, save',
     });
     this.stateMachine.addToRolePolicy(
       new PolicyStatement({ actions: ['dynamodb:PutItem'], resources: [table.tableArn] }),

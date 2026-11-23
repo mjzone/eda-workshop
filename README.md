@@ -10,10 +10,10 @@ The passport office and the NIC office share one building, and visitors lose pas
 ![Architecture](docs/architecture.png)
 
 <!-- stage -->
-> **You are on `stage-2-extract`: stage 2, Read the document.** A multimodal model on Bedrock reads the photos, plain TypeScript checks what it read, and the record is saved to the found-documents table.
+> **You are on `stage-3-review`: stage 3, Ask a person.** When a check fails, the workflow pauses with a task token and waits for the security desk to approve, correct or reject the item.
 >
 > Deploy this stage: `npx cdk deploy --all --require-approval never`
-> Next stage: `git checkout stage-3-review`
+> Next stage: `git checkout stage-4-agent`
 <!-- /stage -->
 
 ## Workshop stages
