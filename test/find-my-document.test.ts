@@ -1,5 +1,4 @@
-// CDK assertion tests for flow 2 (stage 4: the chat API and the agent).
-// The Lambdas are not bundled, which keeps this fast.
+// CDK assertion tests for flow 2. The Lambdas are not bundled, which keeps this fast.
 
 import assert from 'node:assert/strict';
 import { before, describe, it } from 'node:test';
@@ -34,6 +33,15 @@ describe('FindMyDocumentStack', () => {
 
   it('turns managed memory off for the agent', () => {
     template.hasResourceProperties('AWS::BedrockAgentCore::Harness', { Memory: { Disabled: {} } });
+  });
+
+  it('runs every personal-data filter on output only', () => {
+    const [guardrail] = Object.values(template.findResources('AWS::Bedrock::Guardrail'));
+    const policy = guardrail.Properties.SensitiveInformationPolicyConfig;
+    for (const entry of [...policy.RegexesConfig, ...policy.PiiEntitiesConfig]) {
+      assert.equal(entry.InputEnabled, false);
+      assert.equal(entry.OutputEnabled, true);
+    }
   });
 
   it('keeps every log group for 3 days', () => {

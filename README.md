@@ -10,10 +10,10 @@ The passport office and the NIC office share one building, and visitors lose pas
 ![Architecture](docs/architecture.png)
 
 <!-- stage -->
-> **You are on `stage-4-agent`: stage 4, Find my document.** A chat API and an AgentCore agent with one tool, find_document, which returns only a status and a reference.
+> **You are on `stage-5-guardrails`: stage 5, Protect personal data.** Bedrock Guardrails in the chat proxy: prompt attacks are blocked on the way in; ID numbers and contact details are masked on the way out.
 >
 > Deploy this stage: `npx cdk deploy --all --require-approval never`
-> Next stage: `git checkout stage-5-guardrails`
+> Next stage: `git checkout stage-6-knowledge-base` (optional)
 <!-- /stage -->
 
 ## Workshop stages
