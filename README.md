@@ -10,10 +10,10 @@ The passport office and the NIC office share one building, and visitors lose pas
 ![Architecture](docs/architecture.png)
 
 <!-- stage -->
-> **You are on `stage-1-events`: stage 1, Capture the event.** An upload to S3 becomes an event, and an EventBridge rule starts a workflow for each manifest. The workflow has one placeholder step.
+> **You are on `stage-2-extract`: stage 2, Read the document.** A multimodal model on Bedrock reads the photos, plain TypeScript checks what it read, and the record is saved to the found-documents table.
 >
 > Deploy this stage: `npx cdk deploy --all --require-approval never`
-> Next stage: `git checkout stage-2-extract`
+> Next stage: `git checkout stage-3-review`
 <!-- /stage -->
 
 ## Workshop stages

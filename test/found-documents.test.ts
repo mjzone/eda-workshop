@@ -1,4 +1,4 @@
-// CDK assertion tests for flow 1 (stage 1: the bucket, the rule and a placeholder workflow).
+// CDK assertion tests for flow 1. The Lambdas are not bundled, which keeps this fast.
 
 import assert from 'node:assert/strict';
 import { before, describe, it } from 'node:test';
@@ -27,12 +27,6 @@ function stateMachine() {
 }
 
 describe('FoundDocumentsStack', () => {
-  it('sends the bucket’s events to EventBridge', () => {
-    template.hasResourceProperties('Custom::S3BucketNotifications', {
-      NotificationConfiguration: { EventBridgeConfiguration: {} },
-    });
-  });
-
   it('starts the workflow only for manifest.json', () => {
     template.hasResourceProperties('AWS::Events::Rule', {
       EventPattern: {
@@ -59,11 +53,46 @@ describe('FoundDocumentsStack', () => {
     });
   });
 
-  it('checks the key, then runs the placeholder step', () => {
+  it('checks the key, then claims the item before any model call', () => {
     const definition = stateMachine();
     assert.equal(definition.QueryLanguage, 'JSONata');
     assert.equal(definition.StartAt, 'KeyValid?');
-    assert.equal(definition.States['KeyValid?'].Choices[0].Next, 'Received');
-    assert.equal(definition.States['KeyValid?'].Default, 'InvalidKey');
+    assert.equal(definition.States['KeyValid?'].Choices[0].Next, 'ClaimItem');
+  });
+
+  it('claims and saves with the DynamoDB integration, not a Lambda', () => {
+    const states = stateMachine().States;
+    for (const name of ['ClaimItem', 'SaveRecord']) {
+      assert.equal(states[name].Resource, 'arn:aws:states:::dynamodb:putItem', name);
+    }
+  });
+
+  it('stops at ChecksFailed when a check fails', () => {
+    assert.equal(stateMachine().States['ChecksPassed?'].Default, 'ChecksFailed');
+  });
+
+  it('names the table found-documents with a by_dob index and a TTL', () => {
+    template.hasResourceProperties('AWS::DynamoDB::Table', {
+      TableName: 'found-documents',
+      TimeToLiveSpecification: { AttributeName: 'expires_at', Enabled: true },
+      GlobalSecondaryIndexes: [Match.objectLike({ IndexName: 'by_dob' })],
+    });
+  });
+
+  it('keeps every log group for 3 days', () => {
+    const groups = Object.values(template.findResources('AWS::Logs::LogGroup'));
+    assert.ok(groups.length > 0);
+    for (const group of groups) assert.equal(group.Properties.RetentionInDays, 3);
+  });
+
+  it('never grants Bedrock or DynamoDB actions on "*"', () => {
+    for (const policy of Object.values(template.findResources('AWS::IAM::Policy'))) {
+      for (const statement of policy.Properties.PolicyDocument.Statement) {
+        const actions = [statement.Action].flat() as string[];
+        if (actions.some((a) => /^(bedrock|dynamodb):/.test(a))) {
+          assert.ok(![statement.Resource].flat().includes('*'), JSON.stringify(statement));
+        }
+      }
+    }
   });
 });

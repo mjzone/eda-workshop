@@ -1,6 +1,7 @@
-// Flow 1: register a found document. Stage 1 covers steps 1 and 2: the upload and the event.
+// Flow 1: register a found document (steps 1 to 5) and the shared table.
 
 import { CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
+import { AttributeType, BillingMode, ProjectionType, Table } from 'aws-cdk-lib/aws-dynamodb';
 import { EventField, Match, Rule, RuleTargetInput } from 'aws-cdk-lib/aws-events';
 import { SfnStateMachine } from 'aws-cdk-lib/aws-events-targets';
 import { BlockPublicAccess, Bucket, BucketEncryption } from 'aws-cdk-lib/aws-s3';
@@ -13,6 +14,8 @@ export interface FoundDocumentsStackProps extends StackProps {
 }
 
 export class FoundDocumentsStack extends Stack {
+  readonly table: Table;
+
   constructor(scope: Construct, id: string, props: FoundDocumentsStackProps) {
     super(scope, id, props);
     const { config } = props;
@@ -31,8 +34,22 @@ export class FoundDocumentsStack extends Stack {
       ],
     });
 
-    // The workflow. In stage 1 it has one placeholder step.
-    const workflow = new RegisterWorkflow(this, 'RegisterWorkflow');
+    // Step 5: the table both flows share. It holds only what matching needs (REC-1).
+    this.table = new Table(this, 'FoundDocuments', {
+      tableName: 'found-documents',
+      partitionKey: { name: 'item_id', type: AttributeType.STRING },
+      billingMode: BillingMode.PAY_PER_REQUEST,
+      timeToLiveAttribute: 'expires_at',
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+    this.table.addGlobalSecondaryIndex({
+      indexName: 'by_dob',
+      partitionKey: { name: 'date_of_birth', type: AttributeType.STRING },
+      projectionType: ProjectionType.ALL,
+    });
+
+    // Steps 3 and 4: the workflow.
+    const workflow = new RegisterWorkflow(this, 'RegisterWorkflow', { bucket, table: this.table, config });
 
     // Step 2: S3 sends one "Object Created" event per object. Only the manifest starts a run.
     new Rule(this, 'ManifestUploaded', {
@@ -57,5 +74,6 @@ export class FoundDocumentsStack extends Stack {
 
     new CfnOutput(this, 'FoundItemsBucketName', { value: bucket.bucketName });
     new CfnOutput(this, 'StateMachineArn', { value: workflow.stateMachine.stateMachineArn });
+    new CfnOutput(this, 'TableName', { value: this.table.tableName });
   }
 }
