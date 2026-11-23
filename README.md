@@ -10,10 +10,10 @@ The passport office and the NIC office share one building, and visitors lose pas
 ![Architecture](docs/architecture.png)
 
 <!-- stage -->
-> **You are on `stage-3-review`: stage 3, Ask a person.** When a check fails, the workflow pauses with a task token and waits for the security desk to approve, correct or reject the item.
+> **You are on `stage-4-agent`: stage 4, Find my document.** A chat API and an AgentCore agent with one tool, find_document, which returns only a status and a reference.
 >
 > Deploy this stage: `npx cdk deploy --all --require-approval never`
-> Next stage: `git checkout stage-4-agent`
+> Next stage: `git checkout stage-5-guardrails`
 <!-- /stage -->
 
 ## Workshop stages
