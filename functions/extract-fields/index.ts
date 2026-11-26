@@ -59,7 +59,7 @@ const TOOL_SCHEMA = {
 
 const PROMPT = `These photos show one identity document that was found in a building: either the data page of a passport, or the front and back of a Sri Lankan national identity card (NIC).
 
-Read what is printed and call ${TOOL_NAME}.
+Read what is printed, then answer only by calling ${TOOL_NAME}, once. Don't write any other text.
 - Copy every value exactly as printed. Do not correct, complete or reformat numbers.
 - Write the full name in English letters as printed on the document.
 - Write the date of birth as YYYY-MM-DD.
@@ -108,7 +108,10 @@ async function askModel(images: ContentBlock[]) {
             },
           },
         ],
-        toolChoice: { tool: { name: TOOL_NAME } },
+        // Newer models reject a forced tool choice ("tool" or "any") with a ValidationException,
+        // so the model chooses and the prompt asks for the tool only. If it answers in text
+        // instead, the schema check in the handler fails and the model is asked once more.
+        toolChoice: { auto: {} },
       },
       inferenceConfig: { temperature: 0, maxTokens: 1024 },
     }),

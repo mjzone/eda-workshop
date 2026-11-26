@@ -257,9 +257,12 @@ language. JSONata is needed because `ClaimItem` computes a timestamp.
   Lambda doesn't resize images (A-6).
 - **EXT-3** The model is set by `EXTRACTION_MODEL_ID`. It must be an inference profile ID
   for a model with image input (A-4). Use temperature 0 and at most 1024 output tokens.
-- **EXT-4** **Structured output through forced tool use.**
+- **EXT-4** **Structured output through tool use.**
   - Define one tool, `record_extracted_fields`, whose input schema is the schema below.
-  - Set `toolChoice: {tool: {name: "record_extracted_fields"}}`.
+  - Set `toolChoice: {auto: {}}`, and have the prompt tell the model to answer only by
+    calling the tool. Don't force the tool: newer models reject `toolChoice` `tool` and
+    `any` with a ValidationException. A text answer fails the schema check (EXT-5) and
+    counts as a failed attempt.
   - The prompt tells the model to return `null` for anything unreadable, never to guess,
     and to report `document_type` as it sees it, regardless of the manifest.
 
@@ -922,7 +925,7 @@ All parameters live in `.env`. `.env.example` lists every parameter with its def
 | Duplicate events | Caught only at `SaveRecord` | `ClaimItem` at the start (ING-8) | Duplicates double-billed extraction and could orphan a review token. |
 | Rule pattern | `suffix` | `wildcard` plus a key check (ING-4, ING-5) | Stricter. The wildcard crosses `/`, so the key is checked again. |
 | Image handling | Downscale and PDF rendering in Lambda | In the desk CLI (A-6) | No native libraries in Lambda. |
-| Extraction output | "Return only JSON" | Forced tool use (EXT-4) | Output that parses reliably. |
+| Extraction output | "Return only JSON" | Tool use (EXT-4) | Output that parses reliably. |
 | Officer override | "Format rules still enforced" | Every check coded as format or overridable (5.5) | Testable, with no ambiguity. |
 | Tool schema | `pattern` and `minLength` on the Gateway | Validated in the Lambda (FD-1) | Gateway drops those keywords. |
 | Guardrails | One guardrail, input and output unspecified | Per-filter `InputEnabled: false` and the Standard tier (GR-0, GR-2) | Otherwise the PII filters also run on input, and Sinhala and Tamil aren't covered. |
@@ -945,4 +948,5 @@ All parameters live in `.env`. `.env.example` lists every parameter with its def
 | Tests (section 12) | Jest | Node's built-in test runner through `tsx --test` | Fewer dependencies; Vitest's dependency tree broke `npm install`. |
 | Specimens (section 11) | Cases only | Named files used by the slides (README, "Specimens") | `upload-specimen` needs stable names. |
 | Pages (ING-2) | `page-{n}.jpg` | Unchanged | — |
+| Tool choice (EXT-4) | Forced: `toolChoice: {tool: …}` | `toolChoice: {auto: {}}`; the prompt asks for the tool only | The extraction model rejected a forced tool choice with a ValidationException in testing. |
 
