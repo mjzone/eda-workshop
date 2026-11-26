@@ -35,7 +35,7 @@ Each stage is a branch that builds on the one before. Every branch deploys on it
 
 - Node.js 22.12 or later, and Git. Nothing else: no Python, no Docker.
 - An AWS account with credentials configured (for example `aws configure` or `aws sso login`).
-- Amazon Bedrock access in the Region (default `us-east-1`). Claude models need the one-time Anthropic use-case form: open the Bedrock console, choose **Model catalog**, pick a Claude model and follow the prompt.
+- Amazon Bedrock access in the Region (default `us-east-1`). The default model, Amazon Nova Pro, needs no Marketplace subscription or use-case form. To use a Claude model instead, set it in `.env` and first send it one prompt from the Bedrock console playground, so the account's Marketplace subscription is created.
 - No setup on your laptop? AWS CloudShell has Node.js and Git already installed.
 
 ## Set up once
@@ -110,8 +110,8 @@ Everything has a default, so a `.env` file is optional. To change something, cop
 | Setting | Default |
 |---|---|
 | `REGION` | `us-east-1` |
-| `EXTRACTION_MODEL_ID` | `us.anthropic.claude-sonnet-5-5` |
-| `AGENT_MODEL_ID` | `us.anthropic.claude-haiku-5-5` |
+| `EXTRACTION_MODEL_ID` | `us.amazon.nova-pro-v1:0` |
+| `AGENT_MODEL_ID` | `us.amazon.nova-pro-v1:0` |
 | `GUARDRAIL_TIER` | `CLASSIC`. `STANDARD` also detects prompt attacks in Sinhala and Tamil, but needs `GUARDRAIL_PROFILE_ID` |
 | `COLLECTION_POINT` | `Security desk, ground floor` |
 
@@ -140,7 +140,7 @@ npm run synth
 ## Data and privacy
 
 - Only mock specimens. Never upload real people's documents.
-- Photos are sent only to the Bedrock extraction call. Claude is reached through a US cross-Region inference profile, so inference may run in us-east-1, us-east-2 or us-west-2.
+- Photos are sent only to the Bedrock extraction call. Nova Pro is reached through a US cross-Region inference profile, so inference may run in us-east-1, us-east-2 or us-west-2.
 - Lambda logs contain IDs, statuses, counts and timings only. Bedrock model invocation logging stays off.
 - The table stores only what matching needs: a normalized name, the birth date and the last four digits of each document number.
 - Step Functions execution history shows the extracted fields. That's accepted here because the data is mock and the graph is the main teaching visual. In production, pass the fields by S3 reference instead.
@@ -158,7 +158,7 @@ Check that CloudFormation shows neither `FoundDocumentsStack` nor `FindMyDocumen
 
 ## Troubleshooting
 
-- **AccessDeniedException from Bedrock**: submit the Anthropic use-case form (see Prerequisites), or check that the model IDs in `.env` exist in your Region.
+- **AccessDeniedException from Bedrock**: check that the model IDs in `.env` exist in your Region. For a Claude model, send it one prompt from the Bedrock console playground first (see Prerequisites): the Lambda role can't create the Marketplace subscription.
 - **"has no ... yet. It is added in stage N"**: the CLI needs a later stage. Check out that branch and deploy.
 - **No AWS credentials found**: configure credentials, or use AWS CloudShell.
 - **A run stays at RequestOfficerReview**: that's expected. It waits for `npm run desk review <ITEM_ID>`.
