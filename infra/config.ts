@@ -15,8 +15,8 @@ const positiveInt = z.coerce.number().int().positive();
 const Schema = z
   .object({
     REGION: z.string().default('us-east-1'),
-    EXTRACTION_MODEL_ID: z.string().default('us.anthropic.claude-sonnet-5-5'),
-    AGENT_MODEL_ID: z.string().default('us.anthropic.claude-haiku-5-5'),
+    EXTRACTION_MODEL_ID: z.string().default('us.amazon.nova-pro-v1:0'),
+    AGENT_MODEL_ID: z.string().default('us.amazon.nova-pro-v1:0'),
     EMBEDDING_MODEL_ID: z.string().default('amazon.titan-embed-text-v2:0'),
     INFERENCE_REGIONS: z.string().default('us-east-1,us-east-2,us-west-2'),
     GUARDRAIL_TIER: z.enum(['CLASSIC', 'STANDARD']).default('CLASSIC'),
