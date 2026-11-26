@@ -33,19 +33,19 @@ export class ChatApi extends Construct {
       timeout: Duration.seconds(28),
       environment: { HARNESS_ARN: props.harnessArn },
     });
-    // Only this role may call the harness (SEC-1). InvokeHarness is authorized on both the
-    // harness and its endpoint, and the call also needs InvokeAgentRuntime on the runtime the
-    // harness runs on. With the harness ARN alone, every call fails with AccessDeniedException.
+    // Only this role may call the harness (SEC-1). The InvokeHarness API is authorized for two
+    // IAM actions, InvokeHarness and InvokeAgentRuntime, on the harness, its endpoint and the
+    // runtime it runs on. All four ARNs belong to this one harness. With the harness ARN alone,
+    // every call fails with AccessDeniedException.
     this.proxyFn.addToRolePolicy(
       new PolicyStatement({
-        actions: ['bedrock-agentcore:InvokeHarness'],
-        resources: [props.harnessArn, `${props.harnessArn}/harness-endpoint/*`],
-      }),
-    );
-    this.proxyFn.addToRolePolicy(
-      new PolicyStatement({
-        actions: ['bedrock-agentcore:InvokeAgentRuntime'],
-        resources: [props.agentRuntimeArn, `${props.agentRuntimeArn}/runtime-endpoint/*`],
+        actions: ['bedrock-agentcore:InvokeHarness', 'bedrock-agentcore:InvokeAgentRuntime'],
+        resources: [
+          props.harnessArn,
+          `${props.harnessArn}/harness-endpoint/*`,
+          props.agentRuntimeArn,
+          `${props.agentRuntimeArn}/runtime-endpoint/*`,
+        ],
       }),
     );
 

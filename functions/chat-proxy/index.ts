@@ -105,7 +105,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     answer = await askAgent(body.session_id, body.message);
   } catch (error) {
     const timedOut = (error as Error).name === 'TimeoutError' || (error as Error).name === 'AbortError';
-    log(timedOut ? 'timeout' : 'agent_error', { error: (error as Error).name });
+    // AWS error messages name the action and resource, never the visitor's text (PRX-1).
+    log(timedOut ? 'timeout' : 'agent_error', { error: (error as Error).name, detail: (error as Error).message?.slice(0, 500) });
     return reply(200, { session_id: body.session_id, reply: timedOut ? TRY_AGAIN : WENT_WRONG, guardrail_intervened: false });
   }
   if (!answer) {
