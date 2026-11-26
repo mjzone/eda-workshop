@@ -7,6 +7,8 @@ The passport office and the NIC office share one building, and visitors lose pas
 - **Register a found document.** Security uploads photos. An event-driven workflow reads them with a multimodal model on Amazon Bedrock, checks the result with plain code, asks an officer when a check fails, and saves a record.
 - **Find my document.** A visitor chats with an agent on Amazon Bedrock AgentCore. The agent has one lookup tool, `find_document`, which returns only "held" or "not found", a reference and where to collect it. Bedrock Guardrails checks every message on the way in and every answer on the way out.
 
+**Following the workshop?** Use the [Student Guide](STUDENT-GUIDE.md): every command, stage by stage.
+
 ![Architecture](docs/architecture.png)
 
 <!-- stage -->
