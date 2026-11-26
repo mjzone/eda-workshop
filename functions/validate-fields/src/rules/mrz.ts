@@ -59,8 +59,20 @@ export interface MrzCheckInput {
   today: Date;
 }
 
+// Models often miscount a long run of '<'. When the optional data (29-42) is empty, that
+// run carries no information, so it is rebuilt at its correct length of 14. Positions 1-28
+// must still end in a digit, and every check digit is still verified afterwards.
+const EMPTY_OPTIONAL = /^([0-9A-Z<]{27}\d)<+([0-9<]\d)$/;
+
+export function normalizeMrzLine2(line2: string): string {
+  const line = line2.replace(/\s+/g, '').toUpperCase();
+  if (line.length === 44) return line;
+  const match = EMPTY_OPTIONAL.exec(line);
+  return match ? `${match[1]}${'<'.repeat(14)}${match[2]}` : line;
+}
+
 export function checkMrzLine2(input: MrzCheckInput): MrzCheckCode[] {
-  const line = input.line2.replace(/\s+/g, '').toUpperCase();
+  const line = normalizeMrzLine2(input.line2);
   if (line.length !== 44 || !/^[0-9A-Z<]+$/.test(line)) return ['MRZ_LENGTH'];
 
   const at = (from: number, to: number) => line.slice(from - 1, to); // 1-based, inclusive
