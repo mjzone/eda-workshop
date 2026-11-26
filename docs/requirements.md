@@ -66,7 +66,7 @@ says what changes.
 | A-12 | **The API key is embedded in the chat page, and CORS allows any origin** (the page is opened from disk). This is acceptable because the stack is destroyed after the session. | Host the page and restrict CORS to its origin. |
 | A-13 | **NIC day numbers count every year as a leap year** (February always has 29 days). This is widely reported but must be confirmed (D-1). | Change `nicBirthDate()` and its tests. Nothing else changes. |
 | A-14 | **Passport numbers are one letter followed by 7 digits** (`^[A-Z]\d{7}$`). Confirm this (D-2). | Change `PASSPORT_NUMBER_PATTERN`. |
-| A-15 | **Default models:** extraction uses `us.anthropic.claude-sonnet-5-5`, the agent uses `us.anthropic.claude-haiku-5-5`, and embeddings use `amazon.titan-embed-text-v2:0`. All three were available in us-east-1 on 2026-11-12, and both Claude models accept image input. | Override them in `.env`. |
+| A-15 | **Default models:** extraction and the agent use `us.amazon.nova-pro-v1:0`, and embeddings use `amazon.titan-embed-text-v2:0`. Nova Pro accepts image input and needs no AWS Marketplace subscription, so it works in a new account. Claude models were the first choice, but a new account's first call to one fails with AccessDeniedException until someone with Marketplace permissions subscribes (checked 2026-11-26). | Override them in `.env`. |
 | A-16 | **npm scripts replace the Makefile**, so Windows participants don't need `make`. | Nothing changes. |
 
 ## 3. Scope
@@ -891,8 +891,8 @@ All parameters live in `.env`. `.env.example` lists every parameter with its def
 | Parameter | Default | Notes |
 |---|---|---|
 | `REGION` | `us-east-1` | Must meet G-1 (A-2). |
-| `EXTRACTION_MODEL_ID` | `us.anthropic.claude-sonnet-5-5` | An inference profile for a model with image input (A-15). |
-| `AGENT_MODEL_ID` | `us.anthropic.claude-haiku-5-5` | An inference profile for a model with tool use (A-15). |
+| `EXTRACTION_MODEL_ID` | `us.amazon.nova-pro-v1:0` | An inference profile for a model with image input (A-15). |
+| `AGENT_MODEL_ID` | `us.amazon.nova-pro-v1:0` | An inference profile for a model with tool use (A-15). |
 | `EMBEDDING_MODEL_ID` | `amazon.titan-embed-text-v2:0` | Used only by the Knowledge Base. Dimension 1024. |
 | `GUARDRAIL_PROFILE_ID` | to confirm (D-6) | The guardrail cross-Region profile for the Standard tier. |
 | `COLLECTION_POINT` | "Security desk, ground floor" | Shown to visitors. |
