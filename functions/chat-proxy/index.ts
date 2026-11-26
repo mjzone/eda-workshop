@@ -23,6 +23,12 @@ const Body = z.object({
 });
 
 const TRY_AGAIN = 'Sorry, that took too long. Please try again, or ask at the security desk.';
+const WENT_WRONG = 'Sorry, something went wrong. Please try again, or ask at the security desk.';
+
+/** Some models, such as Amazon Nova, write their reasoning in <thinking> tags. Visitors never see it. */
+export function stripThinking(text: string): string {
+  return text.replace(/<thinking>[\s\S]*?(?:<\/thinking>|$)/g, '').trim();
+}
 
 function reply(statusCode: number, body: object): APIGatewayProxyResult {
   return {
@@ -74,7 +80,7 @@ async function askAgent(sessionId: string, message: string): Promise<string> {
       throw new Error('The agent returned an error event');
     }
   }
-  return (last || current).trim();
+  return stripThinking(last || current);
 }
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
@@ -100,7 +106,11 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   } catch (error) {
     const timedOut = (error as Error).name === 'TimeoutError' || (error as Error).name === 'AbortError';
     log(timedOut ? 'timeout' : 'agent_error', { error: (error as Error).name });
-    return reply(200, { session_id: body.session_id, reply: TRY_AGAIN, guardrail_intervened: false });
+    return reply(200, { session_id: body.session_id, reply: timedOut ? TRY_AGAIN : WENT_WRONG, guardrail_intervened: false });
+  }
+  if (!answer) {
+    log('empty_answer');
+    return reply(200, { session_id: body.session_id, reply: WENT_WRONG, guardrail_intervened: false });
   }
 
   const output = await guardrail('OUTPUT', answer);

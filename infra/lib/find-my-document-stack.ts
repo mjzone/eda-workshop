@@ -21,7 +21,11 @@ export class FindMyDocumentStack extends Stack {
     const agent = new Agent(this, 'Agent', { table, config });
 
     // Step A: the chat API and the proxy. Stage 5 adds a guardrail to the proxy.
-    const chat = new ChatApi(this, 'Chat', { harnessArn: agent.harness.attrArn, config });
+    const chat = new ChatApi(this, 'Chat', {
+      harnessArn: agent.harness.attrArn,
+      agentRuntimeArn: agent.harness.attrEnvironmentAgentCoreRuntimeEnvironmentAgentRuntimeArn,
+      config,
+    });
 
     new CfnOutput(this, 'ChatApiUrl', { value: chat.api.urlForPath('/chat') });
     new CfnOutput(this, 'ApiKeyId', { value: chat.apiKey.keyId });
