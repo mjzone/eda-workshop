@@ -105,7 +105,7 @@ diamond(1140, 330, "ChecksPassed?");
 node("ddbTable", 1290, 330, 48, ["SaveRecord", "DynamoDB PutItem", "no Lambda"]);
 pill(1440, 330, 70, "Done", "#1D8102");
 pill(700, 492, 136, "AlreadyProcessing", "#1D8102");
-node("bedrock", 850, 500, 64, ["Amazon Bedrock", "Claude Sonnet 5.5", "Converse with images"]);
+node("bedrock", 850, 500, 64, ["Amazon Bedrock", "Amazon Nova Pro", "Converse with images"]);
 node("lambdaFn", 1140, 500, 48, ["RequestOfficerReview", ".waitForTaskToken"]);
 pill(1350, 500, 176, "Rejected · ReviewTimedOut", "#D13212");
 
@@ -155,7 +155,7 @@ node("lambda", 560, 830, 64, ["chat-proxy", "AWS Lambda"]);
 node("bedrock", 560, 1022, 64, ["Amazon Bedrock Guardrails", "in: prompt attack (Standard tier)", "out: NIC and passport regex, PII"]);
 
 group(680, 715, 580, 215, { stroke: C_AI, label: "Amazon Bedrock AgentCore", iconKey: "agentcore", iconSize: 30 });
-node("agentcore", 800, 830, 64, ["Harness (agent)", "Claude Haiku 5.5", "memory disabled"]);
+node("agentcore", 800, 830, 64, ["Harness (agent)", "Amazon Nova Pro", "memory disabled"]);
 node("agentcore", 1080, 830, 64, ["Gateway", "MCP · IAM inbound auth"]);
 node("lambdaFn", 1420, 830, 48, ["find_document", "AWS Lambda"]);
 
