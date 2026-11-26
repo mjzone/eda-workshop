@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { checkMrzLine2, mrzBirthDate, mrzCheckDigit } from '../functions/validate-fields/src/rules/mrz';
+import { checkMrzLine2, mrzBirthDate, mrzCheckDigit, normalizeMrzLine2 } from '../functions/validate-fields/src/rules/mrz';
 import { passportMrz } from '../test-data/generate-specimens';
 
 const today = new Date('2026-11-23T00:00:00Z');
@@ -52,6 +52,23 @@ describe('checkMrzLine2', () => {
 
   it('reports a line of the wrong length', () => {
     assert.deepEqual(checkMrzLine2({ line2: 'N1234567<7LKA', today }), ['MRZ_LENGTH']);
+  });
+
+  it('rebuilds a miscounted run of filler when the optional data is empty', () => {
+    // Nova Pro's reading of passport_valid: 18 fillers instead of 14.
+    const tooLong = 'N1234567<7LKA9002122F3102112<<<<<<<<<<<<<<<<<<04';
+    assert.equal(normalizeMrzLine2(tooLong), 'N1234567<7LKA9002122F3102112<<<<<<<<<<<<<<04');
+    assert.deepEqual(checkMrzLine2({ line2: tooLong, today }), []);
+    assert.deepEqual(checkMrzLine2({ line2: 'N1234567<7LKA9002122F3102112<<<<<<<<04', today }), []);
+  });
+
+  it('still catches a wrong check digit after rebuilding the filler', () => {
+    const badDob = 'N1234567<7LKA9002123F3102112<<<<<<<<<<<<<<<<<<04';
+    assert.ok(checkMrzLine2({ line2: badDob, today }).includes('MRZ_CHECK_DOB'));
+  });
+
+  it('does not rebuild a line whose optional data holds characters', () => {
+    assert.deepEqual(checkMrzLine2({ line2: 'N1234567<7LKA9002122F3102112AB<<<<<<<<<<<<<<<<04', today }), ['MRZ_LENGTH']);
   });
 
   it('picks the century that does not put the birth date in the future', () => {

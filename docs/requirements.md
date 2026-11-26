@@ -297,7 +297,7 @@ Every failed check has a code. **Format** checks can't be overridden by an offic
 | Code | Kind | Rule |
 |---|---|---|
 | `MISSING_NAME`, `MISSING_DOB`, `MISSING_ID` | Format | VAL-1 |
-| `DOB_FORMAT` | Format | `date_of_birth` is a real date in `YYYY-MM-DD` form, and not in the future |
+| `DOB_FORMAT` | Format | `date_of_birth` is a real date in `YYYY-MM-DD` form, and not in the future. A year-first date with `/` or `.` (as an NIC prints it) is first rewritten with `-` |
 | `LOW_CONFIDENCE` | Overridable | VAL-2 |
 | `EXTRACTION_ERROR` | Overridable | EXT-5 |
 | `DOC_TYPE_MISMATCH` | Overridable | The extracted `document_type` differs from the manifest |
@@ -338,7 +338,9 @@ Every failed check has a code. **Format** checks can't be overridden by an offic
   `^[A-Z]\d{7}$`, A-14).
 - **VAL-6** The MRZ checks for TD3 passports (ICAO 9303) apply when `mrz_line2` is
   present:
-  - **Length:** line 2 is 44 characters.
+  - **Length:** line 2 is 44 characters. When the optional data (positions 29-42) is all
+    `<`, a miscounted run of `<` is first rebuilt at length 14, because models often miscount
+    long runs of filler. The check digits are verified after that.
   - **Check digit method:** weights 7, 3, 1 repeating. Digits keep their value,
     `A`–`Z` count as 10–35 and `<` counts as 0. The check digit is the sum mod 10.
   - **Check digits to verify (1-based positions):**

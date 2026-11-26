@@ -72,6 +72,13 @@ export interface CheckInput {
 
 const blank = (value: string | null | undefined) => value === null || value === undefined || value.trim() === '';
 
+/** Turns 1990/02/12 or 1990.02.12 (as an NIC prints it) into 1990-02-12. Year-first only: 02/03/1990 is ambiguous. */
+export function normalizeDate(value: string | null): string | null {
+  if (value === null) return null;
+  const match = /^\s*(\d{4})[/.](\d{2})[/.](\d{2})\s*$/.exec(value);
+  return match ? `${match[1]}-${match[2]}-${match[3]}` : value;
+}
+
 export function isValidIsoDate(value: string, today: Date): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = new Date(`${value}T00:00:00Z`);
