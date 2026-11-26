@@ -31,7 +31,11 @@ export class FindMyDocumentStack extends Stack {
     });
 
     // Step A: the chat API and the proxy.
-    const chat = new ChatApi(this, 'Chat', { harnessArn: agent.harness.attrArn, config });
+    const chat = new ChatApi(this, 'Chat', {
+      harnessArn: agent.harness.attrArn,
+      agentRuntimeArn: agent.harness.attrEnvironmentAgentCoreRuntimeEnvironmentAgentRuntimeArn,
+      config,
+    });
 
     // Step C: the guardrail, applied by the proxy on the way in and on the way out.
     const guardrail = new Guardrail(this, 'Guardrail', { config });
