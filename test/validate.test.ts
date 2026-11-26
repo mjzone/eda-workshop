@@ -97,6 +97,14 @@ describe('validate', () => {
     assert.deepEqual(codes, ['EXTRACTION_ERROR:overridable', 'MISSING_NAME:format', 'MISSING_DOB:format', 'MISSING_ID:format']);
   });
 
+  it('accepts a year-first birth date with slashes, as an NIC prints it, and stores it as YYYY-MM-DD', () => {
+    const result = validate(request(nic({ date_of_birth: '1990/02/12' })), config);
+    assert.deepEqual(result.failed_checks, []);
+    assert.equal(result.fields.date_of_birth, '1990-02-12');
+    const ambiguous = validate(request(nic({ date_of_birth: '12/02/1990' })), config);
+    assert.ok(ambiguous.failed_checks.map((c) => c.code).includes('DOB_FORMAT'));
+  });
+
   it('flags low confidence, a document-type mismatch and a future birth date', () => {
     const result = validate(request(nic({ confidence: 'low', document_type: 'PASSPORT', date_of_birth: '2030-01-01' })), config);
     const codes = result.failed_checks.map((c) => c.code);
