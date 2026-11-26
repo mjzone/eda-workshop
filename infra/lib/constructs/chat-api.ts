@@ -11,6 +11,8 @@ import { nodeFunction } from './node-function';
 
 export interface ChatApiProps {
   harnessArn: string;
+  /** The AgentCore runtime the harness runs on. Calling the harness is also authorized on it. */
+  agentRuntimeArn: string;
   config: Config;
 }
 
@@ -31,9 +33,20 @@ export class ChatApi extends Construct {
       timeout: Duration.seconds(28),
       environment: { HARNESS_ARN: props.harnessArn },
     });
-    // Only this role may call the harness (SEC-1).
+    // Only this role may call the harness (SEC-1). InvokeHarness is authorized on both the
+    // harness and its endpoint, and the call also needs InvokeAgentRuntime on the runtime the
+    // harness runs on. With the harness ARN alone, every call fails with AccessDeniedException.
     this.proxyFn.addToRolePolicy(
-      new PolicyStatement({ actions: ['bedrock-agentcore:InvokeHarness'], resources: [props.harnessArn] }),
+      new PolicyStatement({
+        actions: ['bedrock-agentcore:InvokeHarness'],
+        resources: [props.harnessArn, `${props.harnessArn}/harness-endpoint/*`],
+      }),
+    );
+    this.proxyFn.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['bedrock-agentcore:InvokeAgentRuntime'],
+        resources: [props.agentRuntimeArn, `${props.agentRuntimeArn}/runtime-endpoint/*`],
+      }),
     );
 
     this.api = new apigw.RestApi(this, 'Api', {
